@@ -1,0 +1,175 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+        }
+
+        .checkerboard {
+            background-color: #1e293b;
+            background-image: 
+                linear-gradient(45deg, #0f172a 25%, transparent 25%), 
+                linear-gradient(-45deg, #0f172a 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #0f172a 75%), 
+                linear-gradient(-45deg, transparent 75%, #0f172a 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .tool-btn.active {
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+            border-color: #60a5fa !important;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+        }
+        
+        .size-btn.active {
+            background-color: #8b5cf6 !important;
+            color: #ffffff !important;
+            border-color: #a78bfa !important;
+        }
+
+        .layer-item.active {
+            border-color: #3b82f6;
+            background-color: #1e293b;
+        }
+
+        .region-chip.active {
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+            border-color: #60a5fa !important;
+        }
+
+        .legend-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            flex-shrink: 0;
+        }
+
+        .remove-part-btn:hover {
+            background-color: rgba(239, 68, 68, 0.12);
+            color: #fca5a5;
+        }
+
+        /* Badge de atalho de teclado nos botões de ferramenta */
+        .shortcut-badge {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            font-size: 8px;
+            font-weight: 700;
+            line-height: 1;
+            color: #64748b;
+            background: rgba(2, 6, 23, 0.7);
+            border-radius: 3px;
+            padding: 1.5px 3px;
+            pointer-events: none;
+        }
+        .tool-btn.active .shortcut-badge {
+            color: rgba(255, 255, 255, 0.85);
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        /* Abas da barra lateral direita */
+        .tab-btn {
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn.active {
+            color: #fff;
+            border-bottom-color: #6366f1;
+            background-color: rgba(99, 102, 241, 0.08);
+        }
+
+        /* Tag de tecla (modal de ajuda) */
+        .kbd {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            color: #cbd5e1;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-bottom-width: 2px;
+            border-radius: 5px;
+            padding: 2px 6px;
+        }
+
+        /* Slider vertical do tamanho do pincel */
+        #brush-size-slider {
+            -webkit-appearance: slider-vertical;
+        }
+
+        /* Modais */
+        #modal-confirm.flex, #modal-rename.flex, #modal-help.flex, #modal-color-studio.flex,
+        #modal-projects.flex, #modal-versions.flex, #modal-compare.flex {
+            display: flex;
+        }
+
+        /* Chips de cor (recentes / favoritos / harmonias / ramp) */
+        .color-chip {
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform 0.1s;
+        }
+        .color-chip:hover {
+            transform: scale(1.15);
+        }
+
+        /* Linha de atalho editável no modal de ajuda */
+        .shortcut-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+        .shortcut-edit-btn {
+            color: #64748b;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        .shortcut-edit-btn:hover {
+            color: #a5b4fc;
+            background: rgba(99, 102, 241, 0.12);
+        }
+        .kbd.listening {
+            background: #4338ca;
+            border-color: #6366f1;
+            color: #fff;
+        }
+
+        /* Container do seletor de cor iro.js */
+        #iro-picker-container canvas {
+            border-radius: 10px;
+        }
+
+        /* Toggle de modo de simetria ativo */
+        .symmetry-mode-item.active,
+        .region-menu-item.active {
+            background-color: rgba(30, 41, 59, 0.5);
+        }

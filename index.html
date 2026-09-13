@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Skin Editor Definitivo Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Scripts do Three.js atualizados para maior estabilidade -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden">
+
+    <!-- CABEÇALHO DA APLICAÇÃO -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-tr from-blue-600 to-indigo-500 p-2 rounded-xl shadow-lg shadow-blue-500/20">
+                <i class="fa-solid fa-cube text-xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight tracking-wide bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                    Skin Studio 3D Pro
+                </h1>
+                <p class="text-xs text-slate-400">Editor Avançado com Camadas Independentes & Pintura 3D</p>
+            </div>
+        </div>
+
+        <!-- Controlo de Ações Principais -->
+        <div class="flex items-center gap-2">
+            <button id="btn-undo" title="Desfazer (Ctrl+Z)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-sm flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-rotate-left"></i> <span class="hidden sm:inline">Desfazer</span>
+            </button>
+            <button id="btn-redo" title="Refazer (Ctrl+Y)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-sm flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-rotate-right"></i> <span class="hidden sm:inline">Refazer</span>
+            </button>
+
+            <div class="h-5 w-px bg-slate-800 mx-1"></div>
+
+            <button id="btn-open-projects" title="Gerenciar Projetos" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-sm flex items-center gap-2 transition max-w-[180px]">
+                <i class="fa-solid fa-folder-tree text-sky-400"></i> <span id="label-current-project" class="hidden sm:inline truncate">Projeto sem título</span>
+                <span id="unsaved-changes-dot" class="hidden w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" title="Alterações não salvas"></span>
+            </button>
+            <button id="btn-open-versions" title="Versões" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-sm flex items-center gap-2 transition">
+                <i class="fa-solid fa-clock-rotate-left text-sky-400"></i> <span class="hidden sm:inline">Versões</span>
+            </button>
+
+            <div class="h-5 w-px bg-slate-800 mx-1"></div>
+
+            <button id="btn-toggle-model" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-sm flex items-center gap-2 transition font-semibold shadow-sm">
+                <i class="fa-solid fa-child-reaching text-indigo-400"></i> <span id="label-model-type" class="hidden sm:inline">Modelo: Classic</span>
+            </button>
+
+            <div class="h-5 w-px bg-slate-800 mx-1"></div>
+
+            <button id="btn-import-skin" title="Abrir PNG (também aceita arrastar-e-soltar ou colar)" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium shadow-md shadow-indigo-600/20 flex items-center gap-2 transition">
+                <i class="fa-solid fa-folder-open"></i> <span class="hidden md:inline">Abrir PNG</span>
+            </button>
+            <input type="file" id="input-skin-file" accept="image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.gif" class="hidden">
+
+            <div class="relative">
+                <button id="btn-export-skin" title="Exportar (Ctrl+S)" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium shadow-md shadow-emerald-600/20 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-download"></i> <span class="hidden md:inline">Exportar</span> <i class="fa-solid fa-chevron-down text-[10px] opacity-70"></i>
+                </button>
+
+                <div id="popover-export" class="absolute top-full right-0 mt-2 p-1.5 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-64 flex flex-col gap-0.5 transition-all duration-200 origin-top-right opacity-0 scale-95 invisible z-30">
+                    <span class="text-[10px] uppercase font-bold text-slate-500 px-2 py-1 block">Skin</span>
+                    <button id="btn-export-png-64" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-image text-emerald-400 w-4 text-center"></i> PNG 64×64 (transparente)</button>
+                    <button id="btn-export-png-legacy" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-image text-emerald-400 w-4 text-center"></i> PNG 64×32 (legado)</button>
+                    <div class="h-px bg-slate-800 my-1 mx-2"></div>
+                    <span class="text-[10px] uppercase font-bold text-slate-500 px-2 py-1 block">Projeto & Extras</span>
+                    <button id="btn-export-project-zip" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-file-zipper text-amber-400 w-4 text-center"></i> Projeto Completo (.zip)</button>
+                    <button id="btn-export-3d-screenshot" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-camera text-amber-400 w-4 text-center"></i> Screenshot do 3D</button>
+                    <p class="text-[10px] text-slate-500 px-2 pt-1 leading-snug">Para exportar uma camada específica, use "⋮" na lista de Camadas.</p>
+                </div>
+            </div>
+
+            <div class="h-5 w-px bg-slate-800 mx-1"></div>
+
+            <button id="btn-help" title="Ajuda & Atalhos (?)" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full border border-slate-700 text-sm transition">
+                <i class="fa-solid fa-question"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- BARRA LATERAL ESQUERDA (FERRAMENTAS) -->
+        <aside class="w-16 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-4 gap-4 shrink-0 overflow-y-auto custom-scrollbar">
+
+            <div class="flex flex-col gap-2 w-full px-2">
+                <span class="text-[10px] uppercase font-bold text-slate-500 text-center block mb-1">Ferramentas</span>
+
+                <button data-tool="pencil" data-key="P" title="Lápis (Pintura) — P" class="tool-btn active relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">P</span>
+                    <i class="fa-solid fa-pen text-base"></i>
+                    <span class="text-[9px]">Lápis</span>
+                </button>
+
+                <button data-tool="eraser" data-key="E" title="Borracha — E" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">E</span>
+                    <i class="fa-solid fa-eraser text-base"></i>
+                    <span class="text-[9px]">Borracha</span>
+                </button>
+
+                <button data-tool="pan" data-key="H" title="Mover / Panorâmica 2D — H" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">H</span>
+                    <i class="fa-solid fa-hand text-base"></i>
+                    <span class="text-[9px]">Mover</span>
+                </button>
+
+                <button data-tool="picker" data-key="I" title="Conta-gotas (Capturar Cor) — I" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">I</span>
+                    <i class="fa-solid fa-eye-dropper text-base"></i>
+                    <span class="text-[9px]">Gotas</span>
+                </button>
+
+                <button data-tool="fill" data-key="G" title="Balde de Tinta — G" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">G</span>
+                    <i class="fa-solid fa-fill-drip text-base"></i>
+                    <span class="text-[9px]">Balde</span>
+                </button>
+
+                <button data-tool="shading" data-key="B" title="Sombreamento (Escurecer / Clarear) — B" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">B</span>
+                    <i class="fa-solid fa-circle-half-stroke text-base"></i>
+                    <span class="text-[9px]">Sombra</span>
+                </button>
+
+                <button data-tool="line" data-key="L" title="Linha Reta — L" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">L</span>
+                    <i class="fa-solid fa-slash text-base"></i>
+                    <span class="text-[9px]">Linha</span>
+                </button>
+
+                <button data-tool="rect" data-key="R" title="Retângulo — R" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">R</span>
+                    <i class="fa-regular fa-square text-base"></i>
+                    <span class="text-[9px]">Retâng.</span>
+                </button>
+
+                <button data-tool="circle" data-key="C" title="Círculo — C" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">C</span>
+                    <i class="fa-regular fa-circle text-base"></i>
+                    <span class="text-[9px]">Círculo</span>
+                </button>
+
+                <button data-tool="gradient" data-key="D" title="Degradê (arraste entre 2 pontos) — D" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">D</span>
+                    <i class="fa-solid fa-fill-drip text-base" style="transform: rotate(180deg);"></i>
+                    <span class="text-[9px]">Degradê</span>
+                </button>
+
+                <button data-tool="stamp" data-key="S" id="btn-tool-stamp" title="Carimbo / Stamp — S" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">S</span>
+                    <i class="fa-solid fa-stamp text-base"></i>
+                    <span class="text-[9px]">Carimbo</span>
+                </button>
+
+                <button data-tool="collage" data-key="J" title="Colagem de Imagens — J" class="tool-btn relative w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition">
+                    <span class="shortcut-badge">J</span>
+                    <i class="fa-solid fa-images text-base"></i>
+                    <span class="text-[9px]">Colagem</span>
+                </button>
+            </div>
+
+            <!-- Opção "Preenchido" (só aparece com Retângulo/Círculo ativos) -->
+            <div id="shape-fill-toggle" class="hidden w-full px-2">
+                <button id="btn-toggle-shape-fill" class="w-full flex items-center justify-between px-2 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] text-slate-300 border border-slate-700/60 transition">
+                    <span>Preenchido</span> <i id="icon-shape-fill-check" class="fa-solid fa-toggle-off text-slate-500 text-sm"></i>
+                </button>
+            </div>
+
+            <div class="w-8 h-px bg-slate-800 my-1"></div>
+
+            <!-- Tamanho do Pincel (Slider versátil, 1-8px) -->
+            <div class="flex flex-col gap-1.5 w-full px-2 items-center">
+                <span class="text-[10px] uppercase font-bold text-slate-500 text-center block mb-1">Pincel</span>
+
+                <div class="w-11 h-11 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
+                    <span id="brush-size-preview" class="rounded-sm bg-blue-400 block" style="width:4px; height:4px;"></span>
+                </div>
+                <span id="brush-size-value" class="text-xs font-bold text-slate-200">1px</span>
+                <input type="range" id="brush-size-slider" min="1" max="8" value="1" step="1"
+                    class="w-11 accent-indigo-500 cursor-pointer" title="Tamanho do pincel — [ e ]" style="writing-mode: vertical-lr; direction: rtl; height: 70px;">
+            </div>
+
+        </aside>
+
+        <!-- VISUALIZADORES (SPLIT VIEWPORT 3D E 2D) -->
+        <main class="flex-1 grid grid-cols-1 lg:grid-cols-2 bg-slate-950 p-4 gap-4 overflow-hidden">
+
+            <!-- PAINEL DE VISUALIZAÇÃO 3D -->
+            <div id="panel-viewer-3d" class="relative bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+
+                <div class="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none gap-2">
+
+                    <!-- Popover Menu de Câmera 3D -->
+                    <div class="relative pointer-events-auto">
+                        <button id="btn-menu-cam-3d" class="px-3.5 py-2 bg-slate-900/90 hover:bg-slate-800 backdrop-blur text-white rounded-xl text-xs font-semibold shadow-lg border border-slate-700/80 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-video text-blue-400"></i> <span class="hidden sm:inline">Câmera 3D</span>
+                        </button>
+
+                        <div id="popover-cam-3d" class="absolute top-full left-0 mt-2 p-3 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-56 flex flex-col gap-3 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible">
+
+                            <div>
+                                <span class="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block flex items-center gap-1"><i class="fa-solid fa-cube"></i> Ângulos Rápidos</span>
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    <button id="cam-front" class="py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">Frente</button>
+                                    <button id="cam-back" class="py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">Costas</button>
+                                    <button id="cam-top" class="py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">Topo</button>
+                                    <button id="cam-left" class="py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">Esq.</button>
+                                    <button id="cam-right" class="py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">Dir.</button>
+                                    <button id="cam-bottom" class="py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">Base</button>
+                                </div>
+                            </div>
+
+                            <div class="h-px bg-slate-800"></div>
+
+                            <div>
+                                <span class="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block flex items-center gap-1"><i class="fa-solid fa-arrows-up-down-left-right"></i> Deslocamento (Pan)</span>
+                                <div class="grid grid-cols-3 gap-1.5 justify-items-center">
+                                    <div></div>
+                                    <button id="cam-move-up" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition shadow-sm"><i class="fa-solid fa-arrow-up"></i></button>
+                                    <div></div>
+                                    <button id="cam-move-left" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition shadow-sm"><i class="fa-solid fa-arrow-left"></i></button>
+                                    <button id="cam-move-down" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition shadow-sm"><i class="fa-solid fa-arrow-down"></i></button>
+                                    <button id="cam-move-right" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition shadow-sm"><i class="fa-solid fa-arrow-right"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="h-px bg-slate-800"></div>
+
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <button id="cam-reset" class="py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition flex items-center justify-center gap-1"><i class="fa-solid fa-crosshairs"></i> Resetar</button>
+                                <button id="cam-focus-part" class="py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition flex items-center justify-center gap-1" title="Foca na parte isolada em Visualizar"><i class="fa-solid fa-magnifying-glass-plus"></i> Focar Parte</button>
+                            </div>
+                            <button id="btn-toggle-autorotate" class="flex items-center justify-between px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-300 transition w-full">
+                                <span>Auto-Rotacionar</span> <i id="icon-autorotate-check" class="fa-solid fa-toggle-off text-slate-500 text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Popover Ambiente 3D -->
+                    <div class="relative pointer-events-auto">
+                        <button id="btn-menu-env3d" class="px-3.5 py-2 bg-slate-900/90 hover:bg-slate-800 backdrop-blur text-white rounded-xl text-xs font-semibold shadow-lg border border-slate-700/80 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-lightbulb text-amber-400"></i> <span class="hidden sm:inline">Ambiente</span>
+                        </button>
+
+                        <div id="popover-env3d" class="absolute top-full left-0 mt-2 p-3 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-60 flex flex-col gap-3 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible">
+                            <button id="btn-toggle-wireframe" class="flex items-center justify-between px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-300 transition w-full">
+                                <span>Wireframe</span> <i id="icon-wireframe-check" class="fa-solid fa-toggle-off text-slate-500 text-sm"></i>
+                            </button>
+                            <button id="btn-toggle-shadows" class="flex items-center justify-between px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-300 transition w-full">
+                                <span>Sombras</span> <i id="icon-shadows-check" class="fa-solid fa-toggle-off text-slate-500 text-sm"></i>
+                            </button>
+
+                            <div class="h-px bg-slate-800"></div>
+
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-[10px] uppercase font-bold text-slate-500">Fundo</span>
+                                    <button id="btn-toggle-bg-transparent" class="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold">Transparente</button>
+                                </div>
+                                <input type="color" id="input-3d-bg-color" value="#0f172a" class="w-full h-8 rounded-lg bg-transparent border border-slate-700 cursor-pointer">
+                            </div>
+
+                            <div class="h-px bg-slate-800"></div>
+
+                            <div class="flex flex-col gap-1.5">
+                                <label class="flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase">Luz Ambiente <span id="label-ambient-value">85%</span></label>
+                                <input type="range" id="slider-ambient-light" min="0" max="150" value="85" class="w-full accent-amber-500">
+                                <label class="flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase mt-1">Luz Direcional <span id="label-directional-value">50%</span></label>
+                                <input type="range" id="slider-directional-light" min="0" max="150" value="50" class="w-full accent-amber-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Popover Animação -->
+                    <div class="relative pointer-events-auto">
+                        <button id="btn-menu-animation" class="px-3.5 py-2 bg-slate-900/90 hover:bg-slate-800 backdrop-blur text-white rounded-xl text-xs font-semibold shadow-lg border border-slate-700/80 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-person-running text-emerald-400"></i> <span id="label-current-animation" class="hidden sm:inline">Animação</span>
+                        </button>
+
+                        <div id="popover-animation" class="absolute top-full left-0 mt-2 p-1.5 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-48 flex flex-col gap-0.5 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible">
+                            <button class="animation-item active flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 bg-slate-800/50 rounded-lg text-xs text-slate-300 text-left transition" data-anim="none"><span>Nenhuma (Pose)</span><i class="fa-solid fa-check text-emerald-400 check-icon"></i></button>
+                            <button class="animation-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-anim="idle"><span>Idle (Parado)</span><i class="fa-solid fa-check text-emerald-400 check-icon hidden"></i></button>
+                            <button class="animation-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-anim="walk"><span>Andar</span><i class="fa-solid fa-check text-emerald-400 check-icon hidden"></i></button>
+                            <button class="animation-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-anim="run"><span>Correr</span><i class="fa-solid fa-check text-emerald-400 check-icon hidden"></i></button>
+                            <button class="animation-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-anim="sneak"><span>Agachar</span><i class="fa-solid fa-check text-emerald-400 check-icon hidden"></i></button>
+                            <button class="animation-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-anim="jump"><span>Pular</span><i class="fa-solid fa-check text-emerald-400 check-icon hidden"></i></button>
+                            <button class="animation-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-anim="attack"><span>Atacar</span><i class="fa-solid fa-check text-emerald-400 check-icon hidden"></i></button>
+                            <button class="animation-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-anim="wave"><span>Acenar</span><i class="fa-solid fa-check text-emerald-400 check-icon hidden"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 pointer-events-auto">
+                        <!-- Seleção de Face -->
+                        <button id="btn-toggle-face-select" title="Clique numa face do personagem para restringir a edição só a ela" class="px-3.5 py-2 bg-slate-900/90 hover:bg-slate-800 backdrop-blur text-white rounded-xl text-xs font-semibold shadow-lg border border-slate-700/80 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-vector-square text-cyan-400"></i> <span class="hidden sm:inline">Selecionar Face</span>
+                        </button>
+
+                        <!-- Botão de Pintura Direta no 3D -->
+                        <button id="btn-toggle-3d-lock" class="px-3.5 py-2 bg-amber-600/90 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold shadow-lg backdrop-blur border border-amber-500/50 flex items-center gap-2 transition">
+                            <i id="icon-3d-lock" class="fa-solid fa-rotate"></i>
+                            <span id="text-3d-lock" class="hidden sm:inline">Girar Câmera 3D</span>
+                        </button>
+
+                        <!-- Tela Cheia -->
+                        <button id="btn-fullscreen-3d" title="Tela Cheia" class="w-9 h-9 flex items-center justify-center bg-slate-900/90 hover:bg-slate-800 backdrop-blur text-white rounded-xl border border-slate-700/80 shadow-lg transition">
+                            <i class="fa-solid fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Contentor do Canvas Three.js -->
+                <div id="viewport-3d" class="w-full h-full cursor-grab active:cursor-grabbing bg-slate-900 rounded-xl"></div>
+
+                <div class="absolute bottom-3 left-3 text-[11px] text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800 backdrop-blur pointer-events-none flex items-center gap-2">
+                    <span id="label-3d-status">Girar: Botão Esquerdo | Mover: Botão Direito</span>
+                    <span id="label-3d-fps" class="text-emerald-400 font-mono">60 FPS</span>
+                </div>
+            </div>
+
+            <!-- PAINEL DO EDITOR 2D -->
+            <div id="panel-viewer-2d" class="relative bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+
+                <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/50 z-20 gap-2">
+
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-semibold text-sm text-slate-200 flex items-center gap-1.5 hidden sm:flex">
+                            <i class="fa-solid fa-border-none text-slate-500"></i> Textura 2D
+                        </span>
+
+                        <div class="w-px h-5 bg-slate-800 mx-1 hidden sm:block"></div>
+
+                        <!-- Popover Visualizar (Grade + Guia UV + Isolar Partes) -->
+                        <div class="relative">
+                            <button id="btn-menu-view2d" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium transition shadow-sm">
+                                <i class="fa-solid fa-eye text-indigo-400"></i> Visualizar
+                            </button>
+
+                            <div id="popover-view2d" class="absolute top-full left-0 mt-2 p-2 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-56 flex flex-col gap-1 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible max-h-[26rem] overflow-y-auto custom-scrollbar">
+
+                                <span class="text-[10px] uppercase font-bold text-slate-500 px-1 pb-0.5 block">Camadas Guia</span>
+
+                                <button id="btn-toggle-grid" class="flex items-center justify-between px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-300 transition w-full">
+                                    <span>Mostrar Grade</span> <i id="icon-grid-check" class="fa-solid fa-toggle-on text-indigo-400 text-sm"></i>
+                                </button>
+
+                                <button id="btn-toggle-template" class="flex items-center justify-between px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-300 transition w-full">
+                                    <span>Guia UV (Template)</span> <i id="icon-template-check" class="fa-solid fa-toggle-off text-slate-500 text-sm"></i>
+                                </button>
+
+                                <div class="h-px bg-slate-800 my-1 mx-1"></div>
+
+                                <span class="text-[10px] uppercase font-bold text-slate-500 px-1 pb-0.5 block">Isolar Partes</span>
+
+                                <button class="region-menu-item active flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 bg-slate-800/50 rounded-lg text-xs text-slate-300 text-left transition" data-region="all">
+                                    <span>Todas as Partes</span><i class="fa-solid fa-check text-indigo-400 check-icon"></i>
+                                </button>
+                                <button class="region-menu-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-region="base">
+                                    <span>Corpo Base</span><i class="fa-solid fa-check text-indigo-400 check-icon hidden"></i>
+                                </button>
+                                <button class="region-menu-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-region="overlay">
+                                    <span>Armadura (Overlay)</span><i class="fa-solid fa-check text-indigo-400 check-icon hidden"></i>
+                                </button>
+                                <button class="region-menu-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-region="head">
+                                    <span>Cabeça Isolada</span><i class="fa-solid fa-check text-indigo-400 check-icon hidden"></i>
+                                </button>
+                                <button class="region-menu-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-region="body">
+                                    <span>Tronco Isolado</span><i class="fa-solid fa-check text-indigo-400 check-icon hidden"></i>
+                                </button>
+                                <button class="region-menu-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-region="limbs">
+                                    <span>Membros Isolados</span><i class="fa-solid fa-check text-indigo-400 check-icon hidden"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Popover Navegar (Zoom + Pan) -->
+                        <div class="relative">
+                            <button id="btn-menu-nav2d" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium transition shadow-sm">
+                                <i class="fa-solid fa-magnifying-glass text-emerald-400"></i> Navegar
+                            </button>
+
+                            <div id="popover-nav2d" class="absolute top-full left-0 mt-2 p-3 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-56 flex flex-col gap-3 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible">
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block">Zoom</span>
+                                    <div class="flex items-center justify-between gap-1">
+                                        <button id="btn-zoom-out" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center justify-center gap-1 transition"><i class="fa-solid fa-minus"></i></button>
+                                        <button id="btn-reset-zoom" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg border border-slate-700 transition" title="Restaurar Zoom">100%</button>
+                                        <button id="btn-zoom-in" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center justify-center gap-1 transition"><i class="fa-solid fa-plus"></i></button>
+                                    </div>
+                                </div>
+
+                                <div class="h-px bg-slate-800"></div>
+
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block flex items-center gap-1"><i class="fa-solid fa-arrows-up-down-left-right"></i> Deslocamento (Pan)</span>
+                                    <div class="grid grid-cols-3 gap-1.5 justify-items-center">
+                                        <div></div>
+                                        <button id="pan2d-up" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition shadow-sm"><i class="fa-solid fa-arrow-up"></i></button>
+                                        <div></div>
+                                        <button id="pan2d-left" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition shadow-sm"><i class="fa-solid fa-arrow-left"></i></button>
+                                        <button id="pan2d-down" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition shadow-sm"><i class="fa-solid fa-arrow-down"></i></button>
+                                        <button id="pan2d-right" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition shadow-sm"><i class="fa-solid fa-arrow-right"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Popover Remover Parte -->
+                        <div class="relative">
+                            <button id="btn-menu-remove-part" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium transition shadow-sm">
+                                <i class="fa-solid fa-eraser text-red-400"></i> Remover Parte
+                            </button>
+
+                            <div id="popover-remove-part" class="absolute top-full left-0 mt-2 p-1.5 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-56 flex flex-col gap-0.5 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible max-h-80 overflow-y-auto custom-scrollbar">
+                                <span class="text-[10px] uppercase font-bold text-slate-500 px-2 py-1 block">Apagar da Camada Ativa</span>
+                                <div id="remove-part-list" class="flex flex-col gap-0.5"></div>
+                                <div class="h-px bg-slate-800 my-1 mx-2"></div>
+                                <p class="text-[10px] text-slate-500 px-2 pb-1 leading-snug">Apaga (torna transparente) a região escolhida somente na camada selecionada na barra lateral.</p>
+                            </div>
+                        </div>
+
+                        <!-- Popover Filtros -->
+                        <div class="relative">
+                            <button id="btn-menu-filters" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium transition shadow-sm">
+                                <i class="fa-solid fa-wand-magic-sparkles text-fuchsia-400"></i> Filtros
+                            </button>
+
+                            <div id="popover-filters" class="absolute top-full left-0 mt-2 p-1.5 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-56 flex flex-col gap-0.5 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible max-h-96 overflow-y-auto custom-scrollbar">
+                                <span class="text-[10px] uppercase font-bold text-slate-500 px-2 py-1 block">Aplicar na Camada Ativa</span>
+                                <div id="filters-list" class="flex flex-col gap-0.5"></div>
+                                <div class="h-px bg-slate-800 my-1 mx-2"></div>
+                                <p class="text-[10px] text-slate-500 px-2 pb-1 leading-snug">Filtros respeitam a região isolada em "Visualizar" e a camada bloqueada.</p>
+                            </div>
+                        </div>
+
+                        <!-- Popover Simetria -->
+                        <div class="relative">
+                            <button id="btn-menu-symmetry" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium transition shadow-sm">
+                                <i class="fa-solid fa-arrows-left-right-to-line text-cyan-400"></i> Simetria <span id="symmetry-badge" class="hidden text-[9px] bg-cyan-500/20 text-cyan-300 px-1.5 rounded-full font-bold">ON</span>
+                            </button>
+
+                            <div id="popover-symmetry" class="absolute top-full left-0 mt-2 p-1.5 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-52 flex flex-col gap-0.5 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible">
+                                <span class="text-[10px] uppercase font-bold text-slate-500 px-2 py-1 block">Modo de Simetria</span>
+                                <button class="symmetry-mode-item active flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 bg-slate-800/50 rounded-lg text-xs text-slate-300 text-left transition" data-symmetry="off">
+                                    <span>Desligada</span><i class="fa-solid fa-check text-cyan-400 check-icon"></i>
+                                </button>
+                                <button class="symmetry-mode-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-symmetry="h">
+                                    <span>Horizontal (tela)</span><i class="fa-solid fa-check text-cyan-400 check-icon hidden"></i>
+                                </button>
+                                <button class="symmetry-mode-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-symmetry="v">
+                                    <span>Vertical (tela)</span><i class="fa-solid fa-check text-cyan-400 check-icon hidden"></i>
+                                </button>
+                                <button class="symmetry-mode-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-symmetry="both">
+                                    <span>Horizontal + Vertical</span><i class="fa-solid fa-check text-cyan-400 check-icon hidden"></i>
+                                </button>
+                                <div class="h-px bg-slate-800 my-1 mx-2"></div>
+                                <button class="symmetry-mode-item flex items-center justify-between px-2.5 py-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-symmetry="uv">
+                                    <span>Membros (UV correto)</span><i class="fa-solid fa-check text-cyan-400 check-icon hidden"></i>
+                                </button>
+                                <p class="text-[10px] text-slate-500 px-2 pt-1 pb-0.5 leading-snug">"Membros" espelha braço/perna/cabeça/tronco direito ↔ esquerdo respeitando as faces da textura UV.</p>
+                            </div>
+                        </div>
+
+                        <!-- Popover Sombreamento (Modo de Luz dedicado) -->
+                        <div class="relative">
+                            <button id="btn-menu-shading" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium transition shadow-sm">
+                                <i class="fa-solid fa-circle-half-stroke text-yellow-400"></i> Sombreamento
+                            </button>
+
+                            <div id="popover-shading-mode" class="absolute top-full left-0 mt-2 p-2.5 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-60 flex flex-col gap-2.5 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible">
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block">Direção da Luz</span>
+                                    <div class="grid grid-cols-3 gap-1.5 justify-items-center w-24 mx-auto">
+                                        <div></div>
+                                        <button class="shading-dir-btn active w-7 h-7 flex items-center justify-center bg-yellow-600/80 text-white rounded-lg border border-yellow-500" data-dir="top"><i class="fa-solid fa-arrow-up"></i></button>
+                                        <div></div>
+                                        <button class="shading-dir-btn w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700" data-dir="left"><i class="fa-solid fa-arrow-left"></i></button>
+                                        <div class="w-7 h-7 flex items-center justify-center text-yellow-500"><i class="fa-solid fa-sun text-[10px]"></i></div>
+                                        <button class="shading-dir-btn w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700" data-dir="right"><i class="fa-solid fa-arrow-right"></i></button>
+                                        <div></div>
+                                        <button class="shading-dir-btn w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700" data-dir="bottom"><i class="fa-solid fa-arrow-down"></i></button>
+                                        <div></div>
+                                    </div>
+                                </div>
+
+                                <label class="flex flex-col gap-1">
+                                    <span class="text-[10px] text-slate-500 font-bold uppercase flex justify-between">Intensidade <span id="label-shading-intensity">35%</span></span>
+                                    <input type="range" id="slider-shading-intensity" min="5" max="80" value="35" class="w-full accent-yellow-500">
+                                </label>
+
+                                <div class="h-px bg-slate-800"></div>
+
+                                <div class="grid grid-cols-2 gap-1.5">
+                                    <button id="btn-shade-lighten-edges" class="py-1.5 text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">Clarear Bordas</button>
+                                    <button id="btn-shade-darken-edges" class="py-1.5 text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">Escurecer Bordas</button>
+                                    <button id="btn-shade-ambient" class="py-1.5 text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">Sombra Ambiente</button>
+                                    <button id="btn-shade-inner" class="py-1.5 text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">Sombra Interna</button>
+                                    <button id="btn-shade-highlight" class="py-1.5 text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition col-span-2">Realce (Highlight)</button>
+                                </div>
+                                <p class="text-[10px] text-slate-500 leading-snug">Aplica na camada ativa, respeitando a face/região selecionada.</p>
+                            </div>
+                        </div>
+
+                        <!-- Popover Copiar/Colar Parte -->
+                        <div class="relative">
+                            <button id="btn-menu-copypaste" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium transition shadow-sm">
+                                <i class="fa-solid fa-clone text-emerald-400"></i> Copiar/Colar
+                            </button>
+
+                            <div id="popover-copypaste" class="absolute top-full left-0 mt-2 p-2 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-64 flex flex-col gap-2 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible max-h-[28rem] overflow-y-auto custom-scrollbar">
+
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-slate-500 px-1 pb-1 block">Espelhar Parte (UV correto)</span>
+                                    <div id="mirror-part-list" class="flex flex-col gap-0.5"></div>
+                                </div>
+
+                                <div class="h-px bg-slate-800"></div>
+
+                                <div>
+                                    <div class="flex items-center justify-between px-1 pb-1">
+                                        <span class="text-[10px] uppercase font-bold text-slate-500">Copiar de</span>
+                                        <span id="clipboard-status" class="text-[10px] text-slate-600 italic">vazio</span>
+                                    </div>
+                                    <div id="copy-part-list" class="flex flex-col gap-0.5"></div>
+                                </div>
+
+                                <div id="clipboard-transform-section" class="hidden">
+                                    <div class="h-px bg-slate-800 mb-2"></div>
+                                    <span class="text-[10px] uppercase font-bold text-slate-500 px-1 pb-1 block">Transformar Cópia</span>
+                                    <div class="grid grid-cols-2 gap-1.5 px-1">
+                                        <button id="btn-clip-flip-h" class="py-1.5 text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition flex items-center justify-center gap-1"><i class="fa-solid fa-left-right"></i> Espelho H</button>
+                                        <button id="btn-clip-flip-v" class="py-1.5 text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition flex items-center justify-center gap-1"><i class="fa-solid fa-up-down"></i> Espelho V</button>
+                                        <button id="btn-clip-rotate-90" class="py-1.5 text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition flex items-center justify-center gap-1"><i class="fa-solid fa-rotate-right"></i> Girar 90°</button>
+                                        <button id="btn-clip-rotate-180" class="py-1.5 text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition flex items-center justify-center gap-1"><i class="fa-solid fa-rotate"></i> Girar 180°</button>
+                                    </div>
+
+                                    <div class="h-px bg-slate-800 my-2"></div>
+                                    <span class="text-[10px] uppercase font-bold text-slate-500 px-1 pb-1 block">Colar em (camada ativa)</span>
+                                    <div id="paste-part-list" class="flex flex-col gap-0.5"></div>
+                                    <p class="text-[10px] text-slate-500 px-1 pt-1 leading-snug">Cola ancorado no canto superior-esquerdo da região escolhida; troque a camada ativa antes de colar para enviar a outra camada.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Popover Utilitários de Textura -->
+                        <div class="relative">
+                            <button id="btn-menu-utils" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium transition shadow-sm">
+                                <i class="fa-solid fa-toolbox text-amber-400"></i> Utilitários
+                            </button>
+
+                            <div id="popover-utils" class="absolute top-full left-0 mt-2 p-1.5 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-64 flex flex-col gap-0.5 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible max-h-96 overflow-y-auto custom-scrollbar">
+                                <span class="text-[10px] uppercase font-bold text-slate-500 px-2 py-1 block">Análise (Camada Ativa)</span>
+                                <button id="btn-util-count-colors" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-palette text-amber-400 w-4 text-center"></i> Contar Cores</button>
+                                <button id="btn-util-transparency" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-eye-slash text-amber-400 w-4 text-center"></i> Detectar Pixels Vazios</button>
+                                <button id="btn-util-empty-overlays" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-layer-group text-amber-400 w-4 text-center"></i> Detectar Overlays Vazios</button>
+                                <button id="btn-util-duplicate-colors" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-clone text-amber-400 w-4 text-center"></i> Cores Muito Parecidas</button>
+                                <button id="btn-util-brightest" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-sun text-amber-400 w-4 text-center"></i> Pixel Mais Claro</button>
+                                <button id="btn-util-darkest" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-moon text-amber-400 w-4 text-center"></i> Pixel Mais Escuro</button>
+
+                                <div class="h-px bg-slate-800 my-1 mx-2"></div>
+                                <span class="text-[10px] uppercase font-bold text-slate-500 px-2 py-1 block">Limpeza</span>
+                                <button id="btn-util-remove-unused" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition"><i class="fa-solid fa-broom-ball text-amber-400 w-4 text-center"></i> Remover Pixels Não Utilizados</button>
+                                <p class="text-[10px] text-slate-500 px-2 pb-1 leading-snug">Apaga pixels da camada ativa que ficam 100% escondidos atrás de camadas opacas acima dela.</p>
+
+                                <div class="h-px bg-slate-800 my-1 mx-2"></div>
+                                <span class="text-[10px] uppercase font-bold text-slate-500 px-2 py-1 block">Quantizar Cores</span>
+                                <div class="flex items-center gap-1.5 px-2 pb-1.5">
+                                    <input id="input-quantize-count" type="number" min="2" max="32" value="8" class="w-14 px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100">
+                                    <button id="btn-util-quantize" class="flex-1 py-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 text-xs rounded-lg border border-amber-500/30 font-medium transition">Aplicar</button>
+                                </div>
+                                <p class="text-[10px] text-slate-500 px-2 pb-1 leading-snug">Reduz a camada ativa para N cores dominantes — útil para limpar ruído de importações.</p>
+                            </div>
+                        </div>
+
+                        <!-- Popover Colagem / Projeção de Imagem -->
+                        <div class="relative">
+                            <button id="btn-menu-collage" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium transition shadow-sm">
+                                <i class="fa-solid fa-images text-pink-400"></i> Colagem
+                            </button>
+
+                            <div id="popover-collage" class="absolute top-full left-0 mt-2 p-2 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-72 flex flex-col gap-2.5 transition-all duration-200 origin-top-left opacity-0 scale-95 z-30 invisible max-h-[30rem] overflow-y-auto custom-scrollbar">
+
+                                <label for="input-collage-image" class="px-2.5 py-2 bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 text-xs rounded-lg border border-pink-500/30 font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition">
+                                    <i class="fa-solid fa-file-image"></i> + Adicionar Imagem (PNG/JPG/WEBP/GIF)
+                                </label>
+                                <input type="file" id="input-collage-image" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden">
+
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-slate-500 px-1 pb-1 block">Objetos na Composição</span>
+                                    <div id="collage-objects-list" class="flex flex-col gap-1"></div>
+                                </div>
+
+                                <button id="btn-collage-apply" class="px-2.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-semibold flex items-center justify-center gap-1.5 shadow w-full">
+                                    <i class="fa-solid fa-stamp"></i> Aplicar à Textura (Projetar)
+                                </button>
+                                <p class="text-[10px] text-slate-500 px-1 leading-snug">Achata todos os objetos acima na camada ativa, na posição/rotação/escala atuais, e limpa a área de composição.</p>
+
+                                <div class="h-px bg-slate-800"></div>
+
+                                <div>
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <span class="text-[10px] uppercase font-bold text-slate-500">Biblioteca de Elementos</span>
+                                        <select id="select-element-category" class="text-[10px] bg-slate-950 border border-slate-700 rounded-lg px-1.5 py-1 text-slate-300">
+                                            <option value="Cabelo">Cabelo</option>
+                                            <option value="Olhos">Olhos</option>
+                                            <option value="Roupas">Roupas</option>
+                                            <option value="Outros">Outros</option>
+                                        </select>
+                                    </div>
+                                    <div id="elements-library-grid" class="grid grid-cols-4 gap-1.5"></div>
+                                    <p id="elements-library-empty" class="text-[10px] text-slate-600 italic px-1 pt-1">Nenhum elemento salvo nesta categoria ainda.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tela Cheia -->
+                    <button id="btn-fullscreen-2d" title="Tela Cheia" class="shrink-0 w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">
+                        <i class="fa-solid fa-expand text-xs"></i>
+                    </button>
+                </div>
+
+                <!-- Barra de Opções da Ferramenta Carimbo -->
+                <div id="bar-stamp-options" class="hidden bg-slate-800/90 border-b border-slate-700 px-3 py-2 text-xs flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-amber-400 flex items-center gap-1"><i class="fa-solid fa-stamp"></i> Carimbo:</span>
+                        <button id="btn-stamp-pick-source" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow">
+                            <i class="fa-solid fa-crosshairs"></i> 🎯 Definir Origem
+                        </button>
+                    </div>
+                    <span id="stamp-status-text" class="text-slate-300 italic text-[11px]">Selecione um decalque na barra lateral</span>
+                </div>
+
+                <!-- Barra de Opções da Ferramenta Colagem -->
+                <div id="bar-collage-options" class="hidden bg-slate-800/90 border-b border-slate-700 px-3 py-2 text-xs flex items-center gap-3 overflow-x-auto custom-scrollbar">
+                    <span class="font-bold text-pink-400 flex items-center gap-1 shrink-0"><i class="fa-solid fa-images"></i> Colagem:</span>
+
+                    <div id="collage-no-selection" class="text-slate-400 italic text-[11px] shrink-0">Adicione ou selecione uma imagem (menu "Colagem" acima) para editar</div>
+
+                    <div id="collage-selection-controls" class="hidden flex items-center gap-3 shrink-0">
+                        <label class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-slate-400 text-[10px]">Opacidade</span>
+                            <input type="range" id="collage-opacity" min="0" max="100" value="100" class="w-16 accent-pink-500">
+                        </label>
+                        <label class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-slate-400 text-[10px]">Brilho</span>
+                            <input type="range" id="collage-brightness" min="0" max="200" value="100" class="w-16 accent-pink-500">
+                        </label>
+                        <label class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-slate-400 text-[10px]">Contraste</span>
+                            <input type="range" id="collage-contrast" min="0" max="200" value="100" class="w-16 accent-pink-500">
+                        </label>
+                        <label class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-slate-400 text-[10px]">Saturação</span>
+                            <input type="range" id="collage-saturation" min="0" max="200" value="100" class="w-16 accent-pink-500">
+                        </label>
+                        <label class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-slate-400 text-[10px]">Rotação</span>
+                            <input type="range" id="collage-rotation" min="0" max="360" value="0" class="w-16 accent-pink-500">
+                        </label>
+
+                        <div class="h-4 w-px bg-slate-700 shrink-0"></div>
+
+                        <button id="collage-flip-h" title="Espelhar Horizontal" class="shrink-0 w-7 h-7 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200"><i class="fa-solid fa-left-right text-[11px]"></i></button>
+                        <button id="collage-flip-v" title="Espelhar Vertical" class="shrink-0 w-7 h-7 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200"><i class="fa-solid fa-up-down text-[11px]"></i></button>
+
+                        <label class="flex items-center gap-1.5 shrink-0" title="Pixelizar">
+                            <input type="checkbox" id="collage-pixelize-toggle" class="accent-pink-500">
+                            <span class="text-slate-400 text-[10px]">Pixelizar</span>
+                            <input type="range" id="collage-pixelize-size" min="2" max="16" value="4" class="w-14 accent-pink-500">
+                        </label>
+
+                        <label class="flex items-center gap-1.5 shrink-0" title="Remover fundo pela cor ao lado">
+                            <input type="checkbox" id="collage-removebg-toggle" class="accent-pink-500">
+                            <span class="text-slate-400 text-[10px]">Remover Fundo</span>
+                            <input type="color" id="collage-removebg-color" value="#ffffff" class="w-6 h-6 rounded border border-slate-600 bg-transparent cursor-pointer">
+                            <input type="range" id="collage-removebg-tolerance" min="0" max="120" value="30" class="w-14 accent-pink-500">
+                        </label>
+
+                        <div class="h-4 w-px bg-slate-700 shrink-0"></div>
+
+                        <button id="collage-duplicate" title="Duplicar" class="shrink-0 w-7 h-7 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200"><i class="fa-solid fa-clone text-[11px]"></i></button>
+                        <button id="collage-save-element" title="Salvar como Elemento na Biblioteca" class="shrink-0 w-7 h-7 flex items-center justify-center bg-slate-700 hover:bg-emerald-600 rounded-lg text-slate-200"><i class="fa-solid fa-bookmark text-[11px]"></i></button>
+                        <button id="collage-delete" title="Excluir" class="shrink-0 w-7 h-7 flex items-center justify-center bg-slate-700 hover:bg-red-600 rounded-lg text-slate-200"><i class="fa-solid fa-trash text-[11px]"></i></button>
+                    </div>
+                </div>
+
+                <!-- Área de Desenho 2D -->
+                <div class="flex-1 checkerboard flex items-center justify-center p-4 relative overflow-hidden" id="canvas-2d-container">
+                    <div id="canvas-2d-wrapper" class="relative transition-transform duration-75">
+                        <canvas id="canvas-template" width="64" height="64" class="w-[380px] h-[380px] rounded-lg pointer-events-none absolute top-0 left-0 opacity-0 transition-opacity duration-200"></canvas>
+                        <canvas id="canvas-2d" width="64" height="64" class="w-[380px] h-[380px] rounded-lg shadow-2xl cursor-crosshair border border-slate-700/50"></canvas>
+                        <canvas id="canvas-collage" width="64" height="64" class="w-[380px] h-[380px] rounded-lg absolute top-0 left-0 pointer-events-none"></canvas>
+                        <canvas id="canvas-overlay" width="64" height="64" class="w-[380px] h-[380px] rounded-lg pointer-events-none absolute top-0 left-0"></canvas>
+                    </div>
+
+                    <!-- Legenda de Cores do Template UV -->
+                    <div id="template-legend" class="hidden absolute top-3 right-3 z-20 p-2.5 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-44 max-h-[calc(100%-1.5rem)] overflow-y-auto custom-scrollbar pointer-events-none">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 block flex items-center gap-1"><i class="fa-solid fa-palette"></i> Legenda UV</span>
+                        <div id="template-legend-list" class="flex flex-col gap-1"></div>
+                    </div>
+
+                    <!-- Banner de Face Selecionada -->
+                    <div id="face-selection-banner" class="hidden absolute bottom-3 left-3 right-3 z-20 px-3 py-2 bg-cyan-950/90 backdrop-blur border border-cyan-700/60 rounded-xl shadow-2xl items-center justify-between gap-2">
+                        <span class="text-xs text-cyan-200 flex items-center gap-1.5"><i class="fa-solid fa-vector-square"></i> Face selecionada: <strong id="face-selection-label" class="font-semibold text-white"></strong></span>
+                        <button id="btn-clear-face-selection" class="px-2 py-1 bg-cyan-800/60 hover:bg-cyan-700 text-cyan-100 text-[11px] rounded-lg font-medium transition">Limpar</button>
+                    </div>
+                </div>
+
+                <div class="p-2.5 border-t border-slate-800 bg-slate-900/80 text-xs text-slate-400 flex justify-between items-center">
+                    <span id="coords-display">X: 0, Y: 0</span>
+                    <span class="text-[11px] text-slate-500 hidden sm:inline">Atalho: H para Mover · [ ] tamanho do pincel</span>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- BARRA LATERAL DIREITA (CORES SEMPRE VISÍVEL + ABAS) -->
+        <aside class="w-80 bg-slate-900 border-l border-slate-800 flex flex-col shrink-0 overflow-hidden">
+
+            <!-- PAINEL DE CORES (fixo, sempre visível) -->
+            <section class="bg-slate-950 p-3.5 border-b border-slate-800 flex flex-col gap-3 shrink-0">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-palette text-blue-400"></i> Cor Atual
+                    </h2>
+                    <button id="btn-open-color-studio" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] rounded-lg border border-slate-700 flex items-center gap-1 font-medium transition">
+                        <i class="fa-solid fa-swatchbook text-indigo-400"></i> Estúdio de Cores
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <!-- Cor primária / secundária com botão de trocar -->
+                    <div class="relative w-11 h-11 shrink-0">
+                        <div id="secondary-color-swatch" title="Cor Secundária" class="absolute bottom-0 right-0 w-6 h-6 rounded-md border-2 border-slate-950 shadow-md" style="background-color:#1e293b;"></div>
+                        <label class="absolute top-0 left-0 w-8 h-8 rounded-md border-2 border-slate-950 shadow-md cursor-pointer overflow-hidden">
+                            <input type="color" id="color-picker" value="#3b82f6" class="w-full h-full opacity-0 cursor-pointer absolute inset-0">
+                            <div id="primary-color-swatch" class="w-full h-full pointer-events-none" style="background-color:#3b82f6;"></div>
+                        </label>
+                        <button id="btn-swap-colors" title="Trocar cor primária/secundária" class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-[8px] text-slate-300">
+                            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex-1 flex flex-col gap-1.5 min-w-0">
+                        <span id="current-color-hex" class="text-xs font-mono text-slate-300 truncate">#3B82F6</span>
+                        <!-- Ajuste de Sombras -->
+                        <div class="flex items-center gap-1.5">
+                            <button id="btn-shade-darken" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 rounded-lg border border-slate-700 flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-minus text-[9px]"></i> Escurecer
+                            </button>
+                            <button id="btn-shade-lighten" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 rounded-lg border border-slate-700 flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-plus text-[9px]"></i> Clarear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cores Recentes -->
+                <div>
+                    <span class="text-[9px] uppercase font-bold text-slate-500 block mb-1">Recentes</span>
+                    <div class="flex flex-wrap gap-1" id="recent-colors-row"></div>
+                </div>
+
+                <!-- Paleta Rápida -->
+                <div class="grid grid-cols-8 gap-1.5" id="palette-grid"></div>
+            </section>
+
+            <!-- ABAS: Camadas / Carimbos -->
+            <div class="flex border-b border-slate-800 shrink-0">
+                <button data-tab="layers" class="tab-btn active flex-1 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-300 flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-layer-group text-indigo-400"></i> Camadas
+                </button>
+                <button data-tab="stamps" class="tab-btn flex-1 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-icons text-amber-400"></i> Carimbos
+                </button>
+            </div>
+
+            <!-- ABA: GERENCIADOR DE CAMADAS -->
+            <section id="tab-panel-layers" class="tab-panel flex-1 min-h-0 p-3.5 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+                <div class="flex items-center justify-between">
+                    <div class="text-[11px] text-slate-400 bg-slate-950/60 px-2.5 py-1.5 rounded-lg border border-slate-800 flex items-center gap-1.5 flex-1">
+                        <i class="fa-solid fa-floppy-disk text-emerald-400"></i> Auto-guardado
+                        <span id="status-storage-saved" class="text-[10px] text-emerald-400 font-semibold ml-auto">Ativo</span>
+                    </div>
+                    <button id="btn-clear-storage" title="Resetar Projeto" class="ml-1.5 px-2 py-1.5 bg-slate-800 hover:bg-red-900/50 text-slate-400 hover:text-red-300 text-xs rounded-lg border border-slate-700 transition">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+
+                <div class="relative">
+                    <button id="btn-add-layer" class="px-2.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg font-semibold flex items-center justify-center gap-1.5 shadow w-full">
+                        <i class="fa-solid fa-plus"></i> <span>Nova Camada</span>
+                    </button>
+
+                    <div id="popover-new-layer" class="absolute top-full left-0 mt-2 p-1.5 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl w-full flex flex-col gap-0.5 transition-all duration-200 origin-top opacity-0 scale-95 invisible z-30 max-h-72 overflow-y-auto custom-scrollbar">
+                        <span class="text-[10px] uppercase font-bold text-slate-500 px-2 py-1 block">Camadas Base</span>
+                        <button class="new-layer-preset-btn flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-preset="Cabelo"><i class="fa-solid fa-scissors text-slate-500 w-3.5 text-center"></i> Cabelo</button>
+                        <button class="new-layer-preset-btn flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-preset="Rosto"><i class="fa-solid fa-face-smile text-slate-500 w-3.5 text-center"></i> Rosto</button>
+                        <button class="new-layer-preset-btn flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-preset="Roupas"><i class="fa-solid fa-shirt text-slate-500 w-3.5 text-center"></i> Roupas</button>
+                        <button class="new-layer-preset-btn flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-preset="Acessórios"><i class="fa-solid fa-gem text-slate-500 w-3.5 text-center"></i> Acessórios</button>
+                        <div class="h-px bg-slate-800 my-1 mx-1"></div>
+                        <span class="text-[10px] uppercase font-bold text-slate-500 px-2 py-1 block">Camadas Overlay</span>
+                        <button class="new-layer-preset-btn flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-preset="Chapéu"><i class="fa-solid fa-hat-wizard text-slate-500 w-3.5 text-center"></i> Chapéu</button>
+                        <button class="new-layer-preset-btn flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-preset="Casaco"><i class="fa-solid fa-vest text-slate-500 w-3.5 text-center"></i> Casaco</button>
+                        <button class="new-layer-preset-btn flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-preset="Mangas"><i class="fa-solid fa-mitten text-slate-500 w-3.5 text-center"></i> Mangas</button>
+                        <button class="new-layer-preset-btn flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-slate-300 text-left transition" data-preset="Calças"><i class="fa-solid fa-socks text-slate-500 w-3.5 text-center"></i> Calças</button>
+                        <div class="h-px bg-slate-800 my-1 mx-1"></div>
+                        <button id="btn-new-layer-custom" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800 rounded-lg text-xs text-indigo-300 text-left transition font-semibold"><i class="fa-solid fa-pen w-3.5 text-center"></i> Personalizada…</button>
+                    </div>
+                </div>
+
+                <div id="layers-list" class="flex flex-col gap-2"></div>
+            </section>
+
+            <!-- ABA: GALERIA DE CARIMBOS -->
+            <section id="tab-panel-stamps" class="tab-panel hidden flex-1 min-h-0 p-3.5 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] text-slate-400">Escolha ou importe um decalque</span>
+                    <label for="input-custom-stamp" class="px-2 py-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 text-xs rounded-lg border border-amber-500/30 font-medium cursor-pointer flex items-center gap-1">
+                        <i class="fa-solid fa-upload"></i> + PNG
+                    </label>
+                    <input type="file" id="input-custom-stamp" accept="image/*" class="hidden">
+                </div>
+
+                <div class="grid grid-cols-4 gap-2" id="stamps-grid"></div>
+            </section>
+
+        </aside>
+
+    </div>
+
+    <!-- MODAIS -->
+    <div id="modal-overlay" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-40 hidden items-center justify-center p-4"></div>
+
+    <!-- Modal Confirmação -->
+    <div id="modal-confirm" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4">
+            <div class="flex items-center gap-3">
+                <div id="modal-confirm-icon" class="w-10 h-10 rounded-full bg-red-500/15 text-red-400 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 id="modal-confirm-title" class="font-bold text-slate-100 text-sm">Confirmar ação</h3>
+            </div>
+            <p id="modal-confirm-message" class="text-xs text-slate-400 leading-relaxed"></p>
+            <div class="flex items-center justify-end gap-2 mt-1">
+                <button id="modal-confirm-cancel" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition">Cancelar</button>
+                <button id="modal-confirm-ok" class="px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold transition">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Renomear -->
+    <div id="modal-rename" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4">
+            <h3 class="font-bold text-slate-100 text-sm flex items-center gap-2"><i class="fa-solid fa-pen text-blue-400"></i> Renomear Camada</h3>
+            <input id="modal-rename-input" type="text" maxlength="40" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="Nome da camada">
+            <div class="flex items-center justify-end gap-2">
+                <button id="modal-rename-cancel" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition">Cancelar</button>
+                <button id="modal-rename-ok" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Estúdio de Cores -->
+    <div id="modal-color-studio" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg p-5 flex flex-col gap-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-100 text-sm flex items-center gap-2"><i class="fa-solid fa-swatchbook text-indigo-400"></i> Estúdio de Cores</h3>
+                <button id="modal-color-studio-close" class="w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div id="iro-picker-container" class="flex justify-center shrink-0"></div>
+
+                <div class="flex-1 flex flex-col gap-2.5 min-w-0">
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex flex-col gap-1">
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Hex</span>
+                            <input id="cs-input-hex" type="text" maxlength="7" class="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500">
+                        </label>
+                        <label class="flex flex-col gap-1">
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Alpha</span>
+                            <input id="cs-input-alpha" type="number" min="0" max="100" class="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500">
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex flex-col gap-1"><span class="text-[10px] text-slate-500 font-bold">R</span><input id="cs-input-r" type="number" min="0" max="255" class="w-full px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100"></label>
+                        <label class="flex flex-col gap-1"><span class="text-[10px] text-slate-500 font-bold">G</span><input id="cs-input-g" type="number" min="0" max="255" class="w-full px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100"></label>
+                        <label class="flex flex-col gap-1"><span class="text-[10px] text-slate-500 font-bold">B</span><input id="cs-input-b" type="number" min="0" max="255" class="w-full px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100"></label>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex flex-col gap-1"><span class="text-[10px] text-slate-500 font-bold">H</span><input id="cs-input-h" type="number" min="0" max="360" class="w-full px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100"></label>
+                        <label class="flex flex-col gap-1"><span class="text-[10px] text-slate-500 font-bold">S</span><input id="cs-input-s" type="number" min="0" max="100" class="w-full px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100"></label>
+                        <label class="flex flex-col gap-1"><span class="text-[10px] text-slate-500 font-bold">L</span><input id="cs-input-l" type="number" min="0" max="100" class="w-full px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100"></label>
+                    </div>
+
+                    <button id="btn-add-favorite" class="mt-1 px-2.5 py-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 text-xs rounded-lg border border-amber-500/30 font-medium flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-star"></i> Adicionar aos Favoritos
+                    </button>
+                </div>
+            </div>
+
+            <div class="h-px bg-slate-800"></div>
+
+            <!-- Favoritos -->
+            <div>
+                <span class="text-[10px] uppercase font-bold text-slate-500 block mb-1.5">Favoritos</span>
+                <div class="flex flex-wrap gap-1.5 min-h-[24px]" id="favorite-colors-row"></div>
+            </div>
+
+            <!-- Harmonias -->
+            <div>
+                <span class="text-[10px] uppercase font-bold text-slate-500 block mb-1.5">Harmonias</span>
+                <div class="flex flex-col gap-2" id="harmonies-list"></div>
+            </div>
+
+            <!-- Gerador de Tons -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[10px] uppercase font-bold text-slate-500">Tons Gerados (Ramp)</span>
+                    <button id="btn-add-ramp-palette" class="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold">+ salvar como paleta</button>
+                </div>
+                <div class="flex gap-1" id="tonal-ramp-row"></div>
+            </div>
+
+            <div class="h-px bg-slate-800"></div>
+
+            <!-- Paletas Salvas -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[10px] uppercase font-bold text-slate-500">Paletas Salvas</span>
+                    <button id="btn-save-current-palette" class="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold">+ salvar paleta atual</button>
+                </div>
+                <div class="flex flex-col gap-1.5" id="saved-palettes-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Projetos -->
+    <div id="modal-projects" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg p-5 flex flex-col gap-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-100 text-sm flex items-center gap-2"><i class="fa-solid fa-folder-tree text-sky-400"></i> Projetos</h3>
+                <button id="modal-projects-close" class="w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="bg-slate-950/60 rounded-xl border border-slate-800 p-3 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <span class="text-[10px] uppercase font-bold text-slate-500 block">Projeto Atual</span>
+                    <span id="current-project-label" class="text-sm text-slate-200 font-semibold truncate block">Projeto sem título</span>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button id="btn-project-new" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition">Novo</button>
+                    <button id="btn-project-save-as" class="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs rounded-lg font-semibold transition">Salvar Como…</button>
+                </div>
+            </div>
+
+            <div>
+                <span class="text-[10px] uppercase font-bold text-slate-500 block mb-1.5">Projetos Salvos</span>
+                <div id="projects-list" class="flex flex-col gap-1.5"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Versões -->
+    <div id="modal-versions" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg p-5 flex flex-col gap-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-100 text-sm flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-sky-400"></i> Versões</h3>
+                <button id="modal-versions-close" class="w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <button id="btn-save-version" class="px-2.5 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs rounded-lg font-semibold flex items-center justify-center gap-1.5 shadow w-full">
+                <i class="fa-solid fa-camera-retro"></i> Salvar Versão Atual
+            </button>
+
+            <div>
+                <span class="text-[10px] uppercase font-bold text-slate-500 block mb-1.5">Linha do Tempo</span>
+                <div id="versions-list" class="flex flex-col gap-1.5"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Comparar -->
+    <div id="modal-compare" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl p-5 flex flex-col gap-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-100 text-sm flex items-center gap-2"><i class="fa-solid fa-code-compare text-sky-400"></i> Comparar Versões</h3>
+                <button id="modal-compare-close" class="w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <div class="flex flex-col items-center gap-1.5">
+                    <span id="compare-label-a" class="text-[11px] text-slate-400 font-semibold">Versão</span>
+                    <canvas id="compare-canvas-a" width="256" height="256" class="w-full aspect-square rounded-lg checkerboard border border-slate-700"></canvas>
+                </div>
+                <div class="flex flex-col items-center gap-1.5">
+                    <span class="text-[11px] text-slate-400 font-semibold">Atual</span>
+                    <canvas id="compare-canvas-b" width="256" height="256" class="w-full aspect-square rounded-lg checkerboard border border-slate-700"></canvas>
+                </div>
+                <div class="flex flex-col items-center gap-1.5">
+                    <span class="text-[11px] text-amber-400 font-semibold">Diferença</span>
+                    <canvas id="compare-canvas-diff" width="256" height="256" class="w-full aspect-square rounded-lg checkerboard border border-slate-700"></canvas>
+                </div>
+            </div>
+            <p id="compare-diff-summary" class="text-xs text-slate-400 text-center"></p>
+        </div>
+    </div>
+
+    <!-- Modal Ajuda / Atalhos -->
+    <div id="modal-help" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-100 text-sm flex items-center gap-2"><i class="fa-solid fa-keyboard text-indigo-400"></i> Atalhos de Teclado</h3>
+                <button id="modal-help-close" class="w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div id="shortcuts-list" class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs"></div>
+
+            <div class="h-px bg-slate-800"></div>
+
+            <div class="text-xs text-slate-400 leading-relaxed flex flex-col gap-1.5">
+                <p><i class="fa-solid fa-circle-info text-blue-400 mr-1"></i> Clique no ícone de lápis para redefinir uma tecla. Atalhos são ignorados enquanto você digita em um campo de texto.</p>
+                <p><i class="fa-solid fa-circle-info text-blue-400 mr-1"></i> Use "Visualizar" para grade, guia UV e isolar partes; "Navegar" para zoom e pan do canvas 2D.</p>
+                <p><i class="fa-solid fa-circle-info text-blue-400 mr-1"></i> "Remover Parte" apaga uma região inteira só da camada ativa. "Simetria" espelha a pintura em tempo real.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip flutuante do Editor UV (Nome/Coordenadas/Tamanho/Camada/Face) -->
+    <div id="uv-hover-tooltip" class="hidden fixed z-[60] px-2.5 py-1.5 bg-slate-950/95 border border-cyan-700/60 rounded-lg shadow-2xl text-[11px] text-slate-200 pointer-events-none leading-snug"></div>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
